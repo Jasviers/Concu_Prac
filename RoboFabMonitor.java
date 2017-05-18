@@ -9,15 +9,15 @@ public class RoboFabMonitor implements RoboFab{
 	/*
 	 * Dominio
 	 */
-	private int p;
-	private int[] pends = new int[Robots.MAX_ROBOTS];
+	private int p;// peso que tiene actualmente la caja
+	private int[] pends = new int[Robots.NUM_ROBOTS];//Array de pesos pendientes que quedan por poner en la caja
 	
 	/*
 	 * Creacion de monitores
 	 */
 	private Monitor mutex;
-    private Monitor.Cond espRobots[];
-    private Monitor.Cond espCinta;
+    private Monitor.Cond espRobots[];//Espera Robots
+    private Monitor.Cond espCinta;//Espera cinta
 
     
     /*
@@ -30,7 +30,7 @@ public class RoboFabMonitor implements RoboFab{
 		p = 0;
 		mutex = new Monitor();
 		espCinta = mutex.newCond();
-		espRobots = new Monitor.Cond[Robots.MAX_ROBOTS];
+		espRobots = new Monitor.Cond[Robots.NUM_ROBOTS];
 		for (int i = 0; i < pends.length; i++) {
 			pends[i]=0;
 			espRobots[i]= mutex.newCond();
@@ -59,12 +59,12 @@ public class RoboFabMonitor implements RoboFab{
 	 *  i : idRobot (0-4)
 	 *  p : carga (MIN_P_PIEZA >= carga =< MAX_P_PIEZA)
 	 *  Salida : Vacia
-	 *  Informaci髇: Guarda el peso de la carga (p) de un robot (i)
+	 *  Informaci贸n: Guarda el peso de la carga (p) de un robot (i)
 	 *  	para identificar que tiene una carga pendiente de soltar.
 	 */
 	public void notificarPeso(int i, int p) {	
 		mutex.enter();
-		pends[i] = p;
+		pends[i] = p;//actualiza el peso de cada robot 
 		mutex.leave();
 	}
 
@@ -72,7 +72,7 @@ public class RoboFabMonitor implements RoboFab{
 	/*
 	 * i: idRobot (0-4)
 	 * Salida: Vacia
-	 * Informaci髇:
+	 * Informaci贸n:
 	 */
 	public void permisoSoltar(int i) {
 		mutex.enter();
@@ -81,8 +81,8 @@ public class RoboFabMonitor implements RoboFab{
 			espRobots[i].await();
 		}
 		
-		p += pends[i];
-		pends[i]=0;
+		p += pends[i];//El robot pone la carga en la caja y suma el peso que hay en la caja
+		pends[i]=0;//El robot ha soltado el peso en la caja 
 		
 		desbloquear();
 		
@@ -94,7 +94,7 @@ public class RoboFabMonitor implements RoboFab{
 	@Override
 	/* 
 	 * Salida: Vacia
-	 * Informaci髇: Si hay robots soltando piezas espera.
+	 * Informaci贸n: Si hay robots soltando piezas espera.
 	 */
 	public void solicitarAvance() {
 		mutex.enter();
@@ -112,7 +112,7 @@ public class RoboFabMonitor implements RoboFab{
 	@Override
 	/* 
 	 * Salida: Vacia
-	 * Informaci髇: Vuelve p a su estado inicial indicando
+	 * Informaci贸n: Vuelve p a su estado inicial indicando
 	 * 		que hay un nuevo contenedor en la cinta.
 	 */
 	public void contenedorNuevo() {
@@ -127,12 +127,12 @@ public class RoboFabMonitor implements RoboFab{
 	 * 
 	 */
 	private void desbloquear(){
-		boolean se馻l = false;
+		boolean se帽al = false;
 		if(true ){
 		}
-		if(espCinta.waiting() > 0 && !se馻l){
+		if(espCinta.waiting() > 0 && !se帽al){
 			espCinta.signal();
-			se馻l = true;
+			se帽al = true;
 		}
 	}
 
