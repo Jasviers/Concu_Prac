@@ -42,7 +42,7 @@ public class RoboFabMonitor implements RoboFab{
 	 * Invariante: self.peso <= MAX_P_CONTENEDOR
 	 */
 	private boolean invariante(){
-		return this.p <= Cinta.MAX_P_CONTENEDOR;
+		return this.p <= Cinta.MAX_P_CONTENEDOR;// El peso debe ser menor que el maximo peso del contenedor
     }
 	
 	/*
@@ -65,6 +65,7 @@ public class RoboFabMonitor implements RoboFab{
 	public void notificarPeso(int i, int p) {	
 		mutex.enter();
 		pends[i] = p;//actualiza el peso de cada robot 
+		desbloquear();
 		mutex.leave();
 	}
 
@@ -78,7 +79,7 @@ public class RoboFabMonitor implements RoboFab{
 		mutex.enter();
 		
 		if(this.p + pends[i] > Cinta.MAX_P_CONTENEDOR){
-			espRobots[i].await();
+			espRobots[i].await();//Pone el robot en espera
 		}
 		
 		p += pends[i];//El robot pone la carga en la caja y suma el peso que hay en la caja
@@ -86,7 +87,7 @@ public class RoboFabMonitor implements RoboFab{
 		
 		desbloquear();
 		
-		test_invariante();
+		test_invariante();//comprueba que no viola la invariante
 		
 		mutex.leave();
 	}
@@ -98,12 +99,16 @@ public class RoboFabMonitor implements RoboFab{
 	 */
 	public void solicitarAvance() {
 		mutex.enter();
+		boolean signal= false;// booleano para salir del bucle si hay algun robot que no esta esperando
 		
-		if(true){
-			espCinta.await();
+		for (int i = 0; i < espRobots.length && !signal; i++) {
+			if (espRobots[i].waiting()== 0 ){//Si hay algun robot que no esta esperando
+				espCinta.await();//la cinta se queda en espera
+				signal=true;
+			}
 		}
 		
-		test_invariante();
+		test_invariante();//comprueba que no viola la invariante
 		
 		mutex.leave();
 
@@ -117,9 +122,9 @@ public class RoboFabMonitor implements RoboFab{
 	 */
 	public void contenedorNuevo() {
 		mutex.enter();
-		this.p = 0;
+		this.p = 0;//pone el peso a 0
 		desbloquear();
-		test_invariante();
+		test_invariante();//comprueba que no viola la invariante
 		mutex.leave();
 	}
 
@@ -127,13 +132,16 @@ public class RoboFabMonitor implements RoboFab{
 	 * 
 	 */
 	private void desbloquear(){
-		boolean señal = false;
-		if(true ){
-		}
-		if(espCinta.waiting() > 0 && !señal){
-			espCinta.signal();
-			señal = true;
-		}
-	}
+        boolean senal = false;// booleano para salir del bucle si hay algun robot que no esta esperando
+        for (int i = 0; i < espRobots.length; i++) {
+            if(this.p + pends[i] < Cinta.MAX_P_CONTENEDOR){
+                espRobots[i].signal();
+                senal = true;
+            } 
+        }
+        if(espCinta.waiting() > 0 && !senal){
+            espCinta.signal();
+        }
+    }
 
 }
