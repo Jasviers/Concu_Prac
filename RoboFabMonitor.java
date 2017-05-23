@@ -5,11 +5,9 @@ import es.upm.babel.cclib.Monitor;
 public class RoboFabMonitor implements RoboFab{
 	
 	/*
-	 * 
-	 */
-
-	/*
 	 * Dominio
+	 * p = N
+	 * pends = [N]
 	 */
 	private int p;// peso que tiene actualmente la caja
 	private int[] pends = new int[Robots.NUM_ROBOTS];//Array de pesos pendientes que quedan por poner en la caja
@@ -25,8 +23,8 @@ public class RoboFabMonitor implements RoboFab{
     /*
 	 * Constructor
 	 * Inicial :
-	 * 			p = 0
-	 * 			pends = 
+	 * 	p = 0
+	 * 	pends = [0,0,...,0]
 	 */
 	public RoboFabMonitor(){
 		p = 0;
@@ -51,7 +49,7 @@ public class RoboFabMonitor implements RoboFab{
 	 * Verifica la invariante
 	 */
 	private void test_invariante(){
-	   		String msg = "La invariante no se cumple\nEstado incorrecto: ( " + this.p + " > " + Cinta.MAX_P_CONTENEDOR + ")";
+	   		String msg = "La invariante no se cumple: ( " + this.p + " > " + Cinta.MAX_P_CONTENEDOR + ")";
 	        if(!invariante())
 				throw new RuntimeException(new Exception(msg));
 	   }
@@ -67,7 +65,7 @@ public class RoboFabMonitor implements RoboFab{
 	public void notificarPeso(int i, int p) {	
 		mutex.enter();
 		pends[i] = p;//actualiza el peso de cada robot 
-		desbloquear();
+		desbloquear();//Desbloquea el hilo pertinente
 		mutex.leave();
 	}
 
@@ -75,23 +73,20 @@ public class RoboFabMonitor implements RoboFab{
 	/*
 	 * i: idRobot (0-4)
 	 * Salida: Vacia
-	 * Informacion:
+	 * Informacion: Comprueba que puede soltar la carga, si puede
+	 * la suelta en el contenedor, si no se bloquea.
 	 */
 	public void permisoSoltar(int i) {
 		mutex.enter();
 		test_invariante();//comprueba que no viola la invariante
 		
-		if(p + pends[i] > Cinta.MAX_P_CONTENEDOR){
+		if(p + pends[i] > Cinta.MAX_P_CONTENEDOR){//Comprobacion cpre
 			espRobots[i].await();//Pone el robot en espera
 		}
 		
 		p += pends[i];//El robot pone la carga en la caja y suma el peso que hay en la caja
 		pends[i]=0;//El robot ha soltado el peso en la caja 
-		
-		desbloquear();
-		
-		
-		
+		desbloquear();//Desbloquea el hilo pertinente
 		mutex.leave();
 	}
 
@@ -102,14 +97,11 @@ public class RoboFabMonitor implements RoboFab{
 	 */
 	public void solicitarAvance() {
 		mutex.enter();		
-		if (!solAv())
-			espCinta.await();
-				
-		
-		
-		
+		if (!solAv()){//comprobacion cpre
+			espCinta.await();//Pone la cinta en espera
+		}
 		test_invariante();//comprueba que no viola la invariante
-		desbloquear();
+		desbloquear();//Desbloquea el hilo pertinente
 		mutex.leave();
 
 	}
@@ -123,26 +115,27 @@ public class RoboFabMonitor implements RoboFab{
 	public void contenedorNuevo() {
 		mutex.enter();
 		this.p = 0;//pone el peso a 0
-		desbloquear();
+		desbloquear();//Desbloquea el hilo pertinente
 		test_invariante();//comprueba que no viola la invariante
 		mutex.leave();
 	}
 	
-	
+	/*
+	 * Metodos auxiliares
+	 * solAv: Devuelve un valor booleano dependiente de la cpre de solicitarAvance.
+	 * desbloquear: conprueba que hilo tiene que desbloquear y lo desbloquea.
+	 */
 	 private boolean solAv(){
-		 boolean signal= false;// 
+		 boolean signal= true;
 		 for (int i = 0; i < pends.length; i++) {	
-			signal=p+pends[i]>Cinta.MAX_P_CONTENEDOR;
+			signal= signal && p+pends[i]>Cinta.MAX_P_CONTENEDOR;
 				
 		 }
 		 return signal;
 	 }
 
-	/*
-	 * 
-	 */
 	private void desbloquear(){
-        boolean senal = false;// booleano para salir del bucle si hay algun robot que no esta esperando
+        boolean senal = false;// booleano auxiliar de parada y limitante
         for (int i = 0; i < espRobots.length && !senal; i++) {
             if(espRobots[i].waiting()>0 && this.p + pends[i] <= Cinta.MAX_P_CONTENEDOR ){
                 espRobots[i].signal();
@@ -151,7 +144,6 @@ public class RoboFabMonitor implements RoboFab{
         }
         if(espCinta.waiting() > 0 && solAv()&& !senal){
             espCinta.signal();
-            senal=true;
         }
     }
 
