@@ -1,3 +1,5 @@
+import javax.swing.plaf.basic.BasicInternalFrameTitlePane.MaximizeAction;
+
 import es.upm.babel.cclib.Monitor;
 
 public class RoboFabMonitor implements RoboFab{
@@ -59,7 +61,7 @@ public class RoboFabMonitor implements RoboFab{
 	 *  i : idRobot (0-4)
 	 *  p : carga (MIN_P_PIEZA >= carga =< MAX_P_PIEZA)
 	 *  Salida : Vacia
-	 *  Información: Guarda el peso de la carga (p) de un robot (i)
+	 *  Informacion: Guarda el peso de la carga (p) de un robot (i)
 	 *  	para identificar que tiene una carga pendiente de soltar.
 	 */
 	public void notificarPeso(int i, int p) {	
@@ -73,12 +75,13 @@ public class RoboFabMonitor implements RoboFab{
 	/*
 	 * i: idRobot (0-4)
 	 * Salida: Vacia
-	 * Información:
+	 * Informacion:
 	 */
 	public void permisoSoltar(int i) {
 		mutex.enter();
+		test_invariante();//comprueba que no viola la invariante
 		
-		if(this.p + pends[i] > Cinta.MAX_P_CONTENEDOR){
+		if(p + pends[i] > Cinta.MAX_P_CONTENEDOR){
 			espRobots[i].await();//Pone el robot en espera
 		}
 		
@@ -87,7 +90,7 @@ public class RoboFabMonitor implements RoboFab{
 		
 		desbloquear();
 		
-		test_invariante();//comprueba que no viola la invariante
+		
 		
 		mutex.leave();
 	}
@@ -95,21 +98,18 @@ public class RoboFabMonitor implements RoboFab{
 	@Override
 	/* 
 	 * Salida: Vacia
-	 * Información: Si hay robots soltando piezas espera.
+	 * Informacion: Si hay robots soltando piezas espera.
 	 */
 	public void solicitarAvance() {
-		mutex.enter();
-		boolean signal= false;// booleano para salir del bucle si hay algun robot que no esta esperando
+		mutex.enter();		
+		if (!solAv())
+			espCinta.await();
+				
 		
-		for (int i = 0; i < espRobots.length && !signal; i++) {
-			if (espRobots[i].waiting()== 0 ){//Si hay algun robot que no esta esperando
-				espCinta.await();//la cinta se queda en espera
-				signal=true;
-			}
-		}
+		
 		
 		test_invariante();//comprueba que no viola la invariante
-		
+		desbloquear();
 		mutex.leave();
 
 	}
@@ -117,7 +117,7 @@ public class RoboFabMonitor implements RoboFab{
 	@Override
 	/* 
 	 * Salida: Vacia
-	 * Información: Vuelve p a su estado inicial indicando
+	 * Informacion: Vuelve p a su estado inicial indicando
 	 * 		que hay un nuevo contenedor en la cinta.
 	 */
 	public void contenedorNuevo() {
@@ -127,20 +127,31 @@ public class RoboFabMonitor implements RoboFab{
 		test_invariante();//comprueba que no viola la invariante
 		mutex.leave();
 	}
+	
+	
+	 private boolean solAv(){
+		 boolean signal= false;// 
+		 for (int i = 0; i < pends.length; i++) {	
+			signal=p+pends[i]>Cinta.MAX_P_CONTENEDOR;
+				
+		 }
+		 return signal;
+	 }
 
 	/*
 	 * 
 	 */
 	private void desbloquear(){
         boolean senal = false;// booleano para salir del bucle si hay algun robot que no esta esperando
-        for (int i = 0; i < espRobots.length; i++) {
-            if(this.p + pends[i] < Cinta.MAX_P_CONTENEDOR){
+        for (int i = 0; i < espRobots.length && !senal; i++) {
+            if(espRobots[i].waiting()>0 && this.p + pends[i] <= Cinta.MAX_P_CONTENEDOR ){
                 espRobots[i].signal();
                 senal = true;
             } 
         }
-        if(espCinta.waiting() > 0 && !senal){
+        if(espCinta.waiting() > 0 && solAv()&& !senal){
             espCinta.signal();
+            senal=true;
         }
     }
 
