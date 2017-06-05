@@ -61,8 +61,8 @@ public class RoboFabCSP implements RoboFab, CSProcess {
 
     public void run() {
 	// declaramos estado del recurso: peso, pendientes...
-	private int peso;
-	private int[] pends;
+	int peso;
+	int[] pends;
 
 	// Inicializamos el estado del recurso
 	peso = 0;
@@ -75,12 +75,12 @@ public class RoboFabCSP implements RoboFab, CSProcess {
 	final AltingChannelInput[] guards = new AltingChannelInput[Robots.NUM_ROBOTS+3];
 	// reservamos NUM_ROBOTS entradas para permisoSoltar y una entrada cada una de
 	// notificarPeso, solicitarAvance y contenedorNuevo
-	for(int i =3; i<guards.lenght;i++){
-		guards[i]=chSoltar.in();
+	for(int i =0; i<Robots.NUM_ROBOTS;i++){
+		guards[i]=chSoltar[i].in();
 	}
-	final int NOTIFICAR = 0;
-	final int AVANZAR   = 1;
-	final int NUEVO     = 2;
+	final int NOTIFICAR = Robots.NUM_ROBOTS;
+	final int AVANZAR   = Robots.NUM_ROBOTS+1;
+	final int NUEVO     = Robots.NUM_ROBOTS+2;
 	// 
 	guards[NOTIFICAR] = chNotificar.in();
 	guards[AVANZAR]   = chAvanzar.in();
@@ -89,30 +89,26 @@ public class RoboFabCSP implements RoboFab, CSProcess {
 	// array de booleanos para sincronización por condición
 	boolean enabled[] = new boolean[Robots.NUM_ROBOTS+3];
 	// inicializamos las condiciones de activación de los canales
-	// TO DO
-	// TO DO 
-	// TO DO
-	// TO DO
-	// TO DO
-	// TO DO
-	// TO DO
-	// TO DO
-	// TO DO
-
+	boolean aux = true;
+	for(int i =0; i<Robots.NUM_ROBOTS;i++){
+		enabled[i]=peso+pends[i] <= Cinta.MAX_P_CONTENEDOR;
+		aux = aux && !enabled[i];
+	}
+	enabled[NOTIFICAR]= true;
+	enabled[AVANZAR]= aux;
+	enabled[NUEVO]= true;
 	final Alternative services = new Alternative(guards);
 
 	while (true) {
 	    // refrescamos el vector enabled:
-	    // TO DO
-	    // TO DO
-            // TO DO
-	    // TO DO
-            // TO DO
-	    // TO DO
-	    // TO DO
-	    // TO DO
-	    // TO DO
-	    // TO DO
+		aux = true;
+		for(int i =0; i<Robots.NUM_ROBOTS;i++){
+			enabled[i]=peso+pends[i] <= Cinta.MAX_P_CONTENEDOR;
+			aux = aux && !enabled[i];
+		}
+		enabled[NOTIFICAR]= true;
+		enabled[AVANZAR]= aux;
+		enabled[NUEVO]= true;
 
 	    // la SELECT:
 	    int i = services.fairSelect(enabled);
