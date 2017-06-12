@@ -142,7 +142,7 @@ public class RoboFabMonitor implements RoboFab{
                 senal = true;
             } 
         }
-        if(espCinta.waiting() > 0 && solAv()&& !senal){
+        if(espCinta.waiting() > 0 && !senal&& solAv()){
             espCinta.signal();
         }
     }
